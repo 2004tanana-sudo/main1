@@ -1,86 +1,125 @@
 import asyncio
-from datetime import time
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from telegram import Update
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    ContextTypes,
-)
+from telegram.ext import Application, CommandHandler, ContextTypes
 
-# =========================
-# НАСТРОЙКИ
-# =========================
+# Вставь сюда токен от @BotFather
+TOKEN = "8962807840:AAEX9Pnvu0xqK9jWsAXOWCn7tdK4WowtPJM"
 
-BOT_TOKEN = "8962807840:AAEX9Pnvu0xqK9jWsAXOWCn7tdK4WowtPJM"
-
-# Сюда впиши Telegram ID пользователя,
-# которому нужно отправлять сообщения.
-TARGET_USER_ID = 490934292
-
+# Часовой пояс Тбилиси
 TIMEZONE = ZoneInfo("Asia/Tbilisi")
 
+# Здесь бот будет хранить ID пользователя
+chat_id = None
 
-# =========================
-# КОМАНДЫ
-# =========================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global chat_id
+
+    chat_id = update.effective_chat.id
+
     await update.message.reply_text(
-        "Бот запущен. Я буду присылать напоминания по расписанию."
+        "Готово! Я запомнил этот чат.\n"
+        "Буду отправлять «ТАБЛЕТКИ» каждые 30 минут с 20:00 до 00:00."
     )
 
 
-# =========================
-# ОТПРАВКА НАПОМИНАНИЯ
-# =========================
+async def reminder():
+    global chat_id
 
-async def send_reminder(context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.send_message(
-        chat_id=TARGET_USER_ID,
-        text="ТАБЛЕТКИ"
-    )
+    while True:
+        now = datetime.now(TIMEZONE)
 
+        # Сегодняшние времена отправки:
+        # 20:00, 20:30, 21:00 ... 23:30, 00:00
 
-# =========================
-# ЗАПУСК
-# =========================
-
-def main():
-    app = Application.builder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-
-    # Первое сообщение — в 20:00.
-    app.job_queue.run_daily(
-        send_reminder,
-        time=time(20, 0, tzinfo=TIMEZONE),
-    )
-
-    # Остальные сообщения каждые 30 минут:
-    # 20:30, 21:00, 21:30 ... 23:30, 00:00
-    for hour in range(20, 24):
-        for minute in (30,):
-            if hour == 23 and minute == 30:
-                continue
-
-            app.job_queue.run_daily(
-                send_reminder,
-                time=time(hour, minute, tzinfo=TIMEZONE),
+        if now.hour < 20:
+            target = now.replace(
+                hour=20, minute=0, second=0, microsecond=0
             )
 
-    # Полночь
-    app.job_queue.run_daily(
-        send_reminder,
-        time=time(0, 0, tzinfo=TIMEZONE),
+        elif now.hour >= 20:
+            # Находим ближайшее время, кратное 30 минутам
+            minute = 0 if now.minute < 30 else 30
+
+            target = now.replace(
+                minute=minute,
+                second=0,
+                microsecond=0
+            )
+
+            # Если это время уже прошло — берём следующие 30 минут
+            if target <= now:
+                target += timedelta(minutes=30)
+
+            # После полуночи следующий цикл начинается в 20:00
+            if target.hour == 0:
+                # 00:00 является последним сообщением
+                pass
+
+        else:
+            target = now
+
+        # Если сейчас уже после 00:00, ждём до 20:00
+        if now.hour == 0 and now.minute > 0:
+            target = (now + timedelta(days=1)).replace(
+                hour=20, minute=0, second=0, microsecond=0
+            )
+
+        wait_seconds = (target - now).total_seconds()
+
+        if wait_seconds > 0:
+            await asyncio.sleep(wait_seconds)
+
+        # Отправляем сообщение
+        if chat_id is not None:
+            try:
+                await bot.send_message(
+                    chat_id=chat_id,
+                    text="ТАБЛЕТКИ"
+                )
+            except Exception as e:
+                print("Ошибка отправки:", e)
+
+        # Если отправили в 00:00 — ждём до 20:00
+        if target.hour == 0 and target.minute == 0:
+            tomorrow = target + timedelta(days=1)
+            next_target = tomorrow.replace(
+                hour=20, minute=0, second=0, microsecond=0
+            )
+
+            await asyncio.sleep(
+                (next_target - datetime.now(TIMEZONE)).total_seconds()
+            )
+
+
+async def main():
+    global bot
+
+    application = Application.builder().token(TOKEN).build()
+
+    application.add_handler(
+        CommandHandler("start", start)
     )
 
-    print("Бот запущен!")
-    print("Напоминания: с 20:00 до 00:00 каждые 30 минут.")
+    bot = application.bot
 
-    app.run_polling()
+    # Запускаем напоминания параллельно с ботом
+    asyncio.create_task(reminder())
+
+    print("Бот запущен!")
+
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
+
+    # Бесконечная работа
+    while True:
+        await asyncio.sleep(3600)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
+  
