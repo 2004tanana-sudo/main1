@@ -35,12 +35,12 @@ async def reminder():
         # Сегодняшние времена отправки:
         # 20:00, 20:30, 21:00 ... 23:30, 00:00
 
-        if now.hour < 20:
+        if now.hour < 4:
             target = now.replace(
-                hour=20, minute=0, second=0, microsecond=0
+                hour=4, minute=0, second=0, microsecond=0
             )
 
-        elif now.hour >= 20:
+        elif now.hour >= 4:
             # Находим ближайшее время, кратное 30 минутам
             minute = 0 if now.minute < 30 else 30
 
@@ -65,7 +65,7 @@ async def reminder():
         # Если сейчас уже после 00:00, ждём до 20:00
         if now.hour == 0 and now.minute > 0:
             target = (now + timedelta(days=1)).replace(
-                hour=20, minute=0, second=0, microsecond=0
+                hour=4, minute=0, second=0, microsecond=0
             )
 
         wait_seconds = (target - now).total_seconds()
