@@ -8,7 +8,7 @@ from telegram import Bot
 # НАСТРОЙКИ
 # ==================================================
 
-TOKEN = "8715730941:AAH7bXZmypIUoPCUJ8sWTYjCacbwKX30Xcg"
+TOKEN = "8962807840:AAEX9Pnvu0xqK9jWsAXOWCn7tdK4WowtPJM"
 TARGET_USER_ID = 490934292
 
 TZ = ZoneInfo("Asia/Tbilisi")
