@@ -55,7 +55,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("Извините, этот бот приватный.")
         return
     await update.message.reply_text(
-        "Привет! Всё, что вы напишете сюда, будет переслано второму человеку."
+        "таблетки."
     )
 
 
@@ -81,7 +81,7 @@ async def relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             message_id=message.message_id,
         )
     except Exception as e:
-        logger.error("Не удалось переслать сообщение: %s", e)
+        logger.error("ERROR: %s", e)
         await message.reply_text(
             "Не получилось отправить сообщение. Возможно, второй человек ещё не запускал бота (/start)."
         )
