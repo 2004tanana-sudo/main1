@@ -83,7 +83,7 @@ async def relay(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception as e:
         logger.error("ERROR: %s", e)
         await message.reply_text(
-            "Не получилось отправить сообщение. Возможно, второй человек ещё не запускал бота (/start)."
+            "таблетки. (/start)."
         )
 
 
